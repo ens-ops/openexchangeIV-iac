@@ -1,0 +1,3 @@
+---
+# Default variables for openexchange_backend
+# This file will contain default settings for backend components like MariaDB, Postfix, Dovecot, etc.

@@ -1,0 +1,38 @@
+---
+- name: Setup Nginx server for OpenExchange UI
+  ansible.builtin.include_tasks: "{{ nginx_ui_task }}"
+  loop:
+    - nginx_packages.yml
+    - nginx_config.yml
+  loop_control:
+    loop_var: nginx_ui_task
+  tags: [nginx]
+
+- name: Clean entries in '/etc/nginx/sites-enabled'
+  ansible.builtin.include_role:
+    name: includes/clean_dir
+    apply:
+      tags: [nginx]
+  vars:
+    dir_name: '/etc/nginx/sites-enabled/'
+    files_expected:
+      - 'default.conf'
+      - 'openexchange_ui.conf' # Placeholder for our UI config
+    may_notify:
+      - Reload nginx
+  tags: [nginx]
+
+- name: Reload nginx, every monday at 8.30am (cert renewal at 7am)
+  ansible.builtin.cron:
+    name: reload the nginx config
+    weekday: 1
+    hour: 8
+    minute: 30
+    job: /usr/sbin/service nginx reload
+    cron_file: nginx-reload
+    user: root
+  tags: [nginx]
+
+- name: Ensure Nginx is reloaded now
+  ansible.builtin.meta: flush_handlers
+  tags: [nginx]

@@ -1,0 +1,18 @@
+---
+- name: Restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  notify:
+    - Wait for nginx
+
+- name: Wait for nginx
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 80
+    delay: 10
+
+- name: Reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

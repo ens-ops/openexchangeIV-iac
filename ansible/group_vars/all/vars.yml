@@ -1,0 +1,43 @@
+---
+# Common variables for all hosts
+
+# MariaDB/MySQL credentials
+mysql_root_pwd: "your_mysql_root_password"
+mysql_dovecot_pwd: "your_mysql_dovecot_password"
+
+# OpenExchange configuration
+ox_cookie_salt: "your_ox_cookie_salt_at_least_16_chars"
+ox_admin_username: "oxadmin"
+ox_admin_password: "your_ox_admin_password"
+ox_name: "openexchange-cluster"
+ox_configdb_name: "configdb"
+configdb_user: "configdb_user"
+configdb_pwd: "your_configdb_password"
+ox_master_username: "oxmaster"
+ox_master_password: "your_ox_master_password"
+
+# UI specific variables
+openexchange_ui_domain: "ui.yourdomain.com"
+openexchange_ui_cert_name: "ui.yourdomain.com" # Should match the domain for Certbot
+
+# IP addresses for OpenExchange VMs (these should match your terraform.tfvars)
+openexchange_backend_ip: "192.168.1.10" # Example IP, adjust as needed
+openexchange_ui_ip: "192.168.1.11"    # Example IP, adjust as needed
+openexchange_services_ip: "192.168.1.12" # Example IP, adjust as needed
+
+# SSH User for VM access (this should match your terraform.tfvars)
+vm_ssh_user: "ubuntu"
+
+# Domain specific variables
+tech_domain:
+  name: "yourdomain.com" # Used for mail server configurations
+
+# Environment and feature flags
+env_type: "dev" # or 'prod'
+features:
+  use_custom_login: false # Set to true if you have a custom login page
+  use_custom_sshd_config: false # Set to true if you want to use a custom sshd_config
+# dimail_login_version: "1.0" # Only needed if use_custom_login is true
+
+# OpenExchange parameters (e.g., for OIDC integration)
+ox_params: [] # e.g., ['oidc'] if OIDC is used

@@ -1,0 +1,32 @@
+---
+- name: Install MariaDB server
+  ansible.builtin.apt:
+    package: [mariadb-server]
+    state: latest
+    cache_valid_time: 600
+  tags: [mariadb]
+
+- name: Setup MariaDB configuration
+  ansible.builtin.include_tasks: "{{ mdb_task }}"
+  loop:
+    - mariadb_init_config.yml
+    - mariadb_secure_config.yml
+  loop_control:
+    loop_var: mdb_task
+  tags: [mariadb]
+
+- name: Install OpenExchange packages
+  ansible.builtin.include_tasks: ox_packages.yml
+  tags: [ox]
+
+- name: Launch specialized tasks for Open-Xchange configuration and satellite services
+  ansible.builtin.include_tasks: "{{ ox_task }}"
+  loop:
+    - ox_setup.yml
+    - ox_config.yml
+    - ox_register_server.yml
+    - ox_register_filestore.yml
+    - ox_register_database.yml
+  loop_control:
+    loop_var: ox_task
+  tags: [ox]

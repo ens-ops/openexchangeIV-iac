@@ -1,0 +1,25 @@
+---
+- name: Copy sshd_config file
+  when: features.use_custom_sshd_config
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: "{{ secure_vms_sshd_config }}"
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  notify: Restart sshd service
+  register: sshd_config_file
+  tags: [security, system]
+
+- block:
+    - name: Check sshd_config file
+      ansible.builtin.command:
+        cmd: sh -c "sshd -T | grep -q 'allowusers.*\<api\>.*'"
+      check_mode: false
+      changed_when: false
+      tags: [security, system]
+  rescue:
+    - name: Custom error message
+      ansible.builtin.fail:
+        msg: The {{ secure_vms_sshd_config }} file should allow user 'api' to connect.
+      tags: [security, system]

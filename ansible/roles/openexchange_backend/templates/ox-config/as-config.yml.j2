@@ -1,0 +1,15 @@
+# Override certain settings
+default:
+    host: all
+{% if env_type == 'prod' and features.use_custom_login %}
+    logoutLocation: '/customLogin?version={{ dimail_login_version }}'
+    loginLocation: '/customLogin?version={{ dimail_login_version }}'
+{% endif %}
+{% if 'oidc' in ox_params %}
+    oidcLogin: true
+{% endif %}
+
+# Override certain settings for certain hosts
+# myhost:
+#     host: myexchange.myhost.mytld
+#     someConfig: some overriding value

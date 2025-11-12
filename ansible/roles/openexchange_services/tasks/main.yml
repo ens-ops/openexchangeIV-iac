@@ -1,0 +1,4 @@
+---
+- name: Placeholder for OpenExchange Services tasks
+  ansible.builtin.debug:
+    msg: "This is where OpenExchange services configuration tasks will go."

@@ -1,0 +1,44 @@
+---
+- name: Configure and create OpenExchange custom VM template
+  hosts: template_builder
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - common_dependencies
+    - secure_vms
+
+  tasks:
+    - name: Clean cloud-init artifacts
+      ansible.builtin.command: cloud-init clean --logs
+      args:
+        warn: false
+      changed_when: true
+      tags: [template_creation]
+
+    - name: Power off the template builder VM
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox_token_id }}"
+        api_token_id: "{{ proxmox_token_id }}"
+        api_token_secret: "{{ proxmox_token_secret }}"
+        api_host: "{{ proxmox_api_url | regex_replace('^https?://([^:]+).*$', '\\1') }}" # Extract hostname from URL
+        node: "{{ proxmox_node }}"
+        vmid: "{{ hostvars[inventory_hostname].vmid }}" # Assuming vmid is set in inventory
+        state: stopped
+      delegate_to: localhost
+      run_once: true
+      tags: [template_creation]
+
+    - name: Convert VM to template
+      community.general.proxmox_kvm:
+        api_user: "{{ proxmox_token_id }}"
+        api_token_id: "{{ proxmox_token_id }}"
+        api_token_secret: "{{ proxmox_token_secret }}"
+        api_host: "{{ proxmox_api_url | regex_replace('^https?://([^:]+).*$', '\\1') }}"
+        node: "{{ proxmox_node }}"
+        vmid: "{{ hostvars[inventory_hostname].vmid }}"
+        name: "{{ custom_vm_template_name }}"
+        state: template
+      delegate_to: localhost
+      run_once: true
+      tags: [template_creation]

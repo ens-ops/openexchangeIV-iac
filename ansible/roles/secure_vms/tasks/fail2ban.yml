@@ -1,0 +1,17 @@
+---
+- name: Install fail2ban
+  ansible.builtin.package:
+    name: fail2ban
+    state: present
+  tags: [security, system]
+
+- name: Do not ban local IPs for ssh
+  ansible.builtin.template:
+    src: ignore.conf.j2
+    dest: /etc/fail2ban/jail.d/ignore.conf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  notify:
+    - Reload fail2ban
+  tags: [security, system]

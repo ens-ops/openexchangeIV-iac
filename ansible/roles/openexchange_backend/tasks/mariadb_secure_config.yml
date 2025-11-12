@@ -1,0 +1,30 @@
+---
+- name: Set new password for root user in MariaDB
+  community.mysql.mysql_user:
+    login_user: root
+    login_unix_socket: /run/mysqld/mysqld.sock
+    name: root
+    host: localhost
+    password: "{{ mysql_root_pwd }}"
+    state: present
+  register: mysql_root_pwd_change
+  failed_when: mysql_root_pwd_change.changed is false and 'Access denied' not in mysql_root_pwd_change.msg
+  tags: [mariadb]
+
+- name: Remove anonymous MySQL users on localhost
+  community.mysql.mysql_user:
+    host: localhost
+    login_user: root
+    login_password: "{{ mysql_root_pwd }}"
+    name: ""
+    column_case_sensitive: true
+    state: absent
+  tags: [mariadb]
+
+- name: Remove test database
+  community.mysql.mysql_db:
+    login_user: root
+    login_password: "{{ mysql_root_pwd }}"
+    name: test
+    state: absent
+  tags: [mariadb]

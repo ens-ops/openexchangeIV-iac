@@ -1,0 +1,14 @@
+---
+# Sensitive variables for all hosts
+# IMPORTANT: This file should be encrypted using ansible-vault.
+# Example: ansible-vault encrypt ansible/group_vars/all/vault.yml
+
+# MariaDB/MySQL credentials
+mysql_root_pwd: "REPLACE_WITH_YOUR_MYSQL_ROOT_PASSWORD"
+mysql_dovecot_pwd: "REPLACE_WITH_YOUR_MYSQL_DOVECOT_PASSWORD"
+
+# OpenExchange configuration
+ox_cookie_salt: "REPLACE_WITH_YOUR_OX_COOKIE_SALT_AT_LEAST_16_CHARS"
+ox_admin_password: "REPLACE_WITH_YOUR_OX_ADMIN_PASSWORD"
+configdb_pwd: "REPLACE_WITH_YOUR_CONFIGDB_PASSWORD"
+ox_master_password: "REPLACE_WITH_YOUR_OX_MASTER_PASSWORD"

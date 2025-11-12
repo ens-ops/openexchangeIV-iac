@@ -1,0 +1,32 @@
+# Terraform
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.backup
+crash.log
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+*~
+.#*
+*.swp
+*.bak
+*.orig
+*.pyc
+__pycache__/
+.ansible/
+ansible.cfg
+/ansible/group_vars/all/vault.yml # Vault file should be encrypted and not directly committed unencrypted
+
+# Logs
+*.log
+log/
+
+# OS generated files
+.DS_Store
+.env
+.vscode/
+
+# Project specific
+# Add any other files or directories specific to OpenExchange that should be ignored

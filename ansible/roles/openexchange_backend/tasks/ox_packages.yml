@@ -1,0 +1,84 @@
+---
+- name: Install Open-Xchange Packages (common OX packages)
+  ansible.builtin.apt:
+    package:
+      - open-xchange
+      - open-xchange-grizzly
+      - open-xchange-admin
+      - open-xchange-appsuite
+      - open-xchange-dav
+      - open-xchange-mailfilter
+      - open-xchange-spamhandler-spamassassin
+      - open-xchange-appsuite-backend
+      - open-xchange-appsuite-manifest
+      - open-xchange-authorization-standard
+      - open-xchange-passwordchange-script
+      - open-xchange-subscribe
+      - open-xchange-dynamic-theme
+      - open-xchange-oidc
+      - open-xchange-filestore-s3
+      - open-xchange-authentication-application-storage-rdb
+      - open-xchange-admin-soap
+      - open-xchange-appsuite-help-common
+      - open-xchange-appsuite-help-zh-tw
+      - open-xchange-appsuite-help-zh-cn
+      - open-xchange-appsuite-help-tr-tr
+      - open-xchange-appsuite-help-pl-pl
+      - open-xchange-appsuite-help-nl-nl
+      - open-xchange-appsuite-help-ja-jp
+      - open-xchange-appsuite-help-it-it
+      - open-xchange-appsuite-help-fr-fr
+      - open-xchange-appsuite-help-es-mx
+      - open-xchange-appsuite-help-es-es
+      - open-xchange-appsuite-help-en-us
+      - open-xchange-appsuite-help-en-gb
+      - open-xchange-appsuite-help-de-de
+      - open-xchange-appsuite-l10n-zh-tw
+      - open-xchange-appsuite-l10n-zh-cn
+      - open-xchange-appsuite-l10n-tr-tr
+      - open-xchange-appsuite-l10n-sv-se
+      - open-xchange-appsuite-l10n-sk-sk
+      - open-xchange-appsuite-l10n-ru-ru
+      - open-xchange-appsuite-l10n-ro-ro
+      - open-xchange-appsuite-l10n-pt-br
+      - open-xchange-appsuite-l10n-pl-pl
+      - open-xchange-appsuite-l10n-nl-nl
+      - open-xchange-appsuite-l10n-nb-no
+      - open-xchange-appsuite-l10n-lv-lv
+      - open-xchange-appsuite-l10n-ja-jp
+      - open-xchange-appsuite-l10n-it-it
+      - open-xchange-appsuite-l10n-hu-hu
+      - open-xchange-appsuite-l10n-fr-fr
+      - open-xchange-appsuite-l10n-fr-ca
+      - open-xchange-appsuite-l10n-fi-fi
+      - open-xchange-appsuite-l10n-et-ee
+      - open-xchange-appsuite-l10n-es-mx
+      - open-xchange-appsuite-l10n-es-es
+      - open-xchange-appsuite-l10n-en-us
+      - open-xchange-appsuite-l10n-en-gb
+      - open-xchange-appsuite-l10n-el-gr
+      - open-xchange-appsuite-l10n-de-de
+      - open-xchange-appsuite-l10n-da-dk
+      - open-xchange-appsuite-l10n-cs-cz
+      - open-xchange-appsuite-l10n-ca-es
+      - libdbd-mysql-perl
+      - libtext-csv-perl
+      - libcrypt-argon2-perl
+      - libstring-random-perl
+      - dovecot-core
+    state: latest
+    cache_valid_time: 3600
+  notify:
+    - Restart ox
+  tags: [ox]
+
+- name: Install Open-Xchange Packages (imap auth)
+  when: "'imap' in ox_params"
+  ansible.builtin.apt:
+    package:
+      - open-xchange-authentication-imap
+    state: latest
+    cache_valid_time: 3600
+  notify:
+    - Restart ox
+  tags: [ox]

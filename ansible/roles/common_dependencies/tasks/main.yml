@@ -1,0 +1,23 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install common dependencies
+  ansible.builtin.apt:
+    name:
+      - postfix
+      - dovecot-imapd
+      - dovecot-pop3d
+      - opendkim
+      - amavisd-new
+      - spamassassin
+      - mariadb-client
+      - nginx
+      - certbot
+      - open-xchange-appsuite
+      - open-xchange-admin
+      - open-xchange-gui
+      - open-xchange-groupware
+    state: present

@@ -1,0 +1,99 @@
+# Read by both client and server
+[client-server]
+port = 3306
+socket = /run/mysqld/mysqld.sock
+
+[mysqldump]
+quick
+quote-names
+max_allowed_packet      = 16M
+
+# this is read by the standalone daemon and embedded servers
+[server]
+
+# this is only for the mysqld standalone daemon
+[mysqld]
+#user                    = mysql
+pid-file                = /run/mysqld/mysqld.pid
+basedir                 = /usr
+datadir                 = /var/mysql/data
+#tmpdir                  = /tmp
+
+[mariadb]
+log_output = FILE
+general_log = 0
+general_log_file = /var/log/mysql/mysql.log
+max_connections = 300
+
+# Broken reverse DNS slows down connections considerably and name resolve is
+# safe to skip if there are no "host by domain name" access grants
+#skip-name-resolve
+
+# Instead of skip-networking the default is now to listen only on
+# localhost which is more compatible and is not less secure.
+bind-address            = 0.0.0.0
+
+# Enable this if you want to have error logging into a separate file
+log_error = /var/log/mysql/error.log
+{% if ansible_distribution_major_version > "11" %}
+# Enable the slow query log to see queries with especially long duration
+log_slow_query_file    = /var/log/mysql/mariadb-slow.log
+log_slow_query_time    = 10
+log_slow_verbosity     = query_plan,explain
+#log-queries-not-using-indexes
+#log_slow_min_examined_row_limit = 1000
+{% endif %}
+
+server-id              = {{ sql_server_id }}
+log_bin                = /var/mysql/binlogs/mysql-bin.log
+max_binlog_size        = 100M
+{% for db in mysql_ignore_db %}
+binlog_ignore_db = {{ db }}
+{% endfor %}
+expire_logs_days       = 10
+
+# For documentation, please read
+# https://mariadb.com/kb/en/securing-connections-for-client-and-server/
+#ssl-ca = /etc/mysql/cacert.pem
+#ssl-cert = /etc/mysql/server-cert.pem
+#ssl-key = /etc/mysql/server-key.pem
+#require-secure-transport = on
+
+# MySQL/MariaDB default is Latin1, but in Debian we rather default to the full
+# utf8 4-byte character set. See also client.cnf
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_general_ci
+
+#
+# * InnoDB
+#
+
+# InnoDB is enabled by default with a 10MB datafile in /var/lib/mysql/.
+# Read the manual for more InnoDB related options. There are many!
+# Most important is to give InnoDB 80 % of the system RAM for buffer use:
+# https://mariadb.com/kb/en/innodb-system-variables/#innodb_buffer_pool_size
+innodb_buffer_pool_size = 2G
+
+{% if ansible_distribution_major_version > "11" %}
+# From /etc/mariadb.conf.d/provider_*
+# To be updated if we add other plugins
+[server]
+plugin_load_add=provider_bzip2
+provider_bzip2=force_plus_permanent
+
+[server]
+plugin_load_add=provider_lz4
+provider_lz4=force_plus_permanent
+
+[server]
+plugin_load_add=provider_lzma
+provider_lzma=force_plus_permanent
+
+[server]
+plugin_load_add=provider_lzo
+provider_lzo=force_plus_permanent
+
+[server]
+plugin_load_add=provider_snappy
+provider_snappy=force_plus_permanent
+{% endif %}

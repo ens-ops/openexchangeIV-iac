@@ -1,0 +1,10 @@
+---
+- name: Launch all tasks to secure VMs
+  ansible.builtin.include_tasks: "{{ secure_vm_task }}"
+  loop:
+    - ssh.yml
+    - fail2ban.yml
+    - remove_cloudinit.yml
+  loop_control:
+    loop_var: secure_vm_task
+  tags: [security, system]

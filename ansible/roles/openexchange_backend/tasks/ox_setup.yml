@@ -1,0 +1,94 @@
+---
+- name: Give new path to system
+  ansible.builtin.copy:
+    src: ox_path.sh
+    dest: /etc/profile.d/ox_path.sh
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  tags: [ox]
+
+- name: Ensure logs folder is present
+  ansible.builtin.file:
+    path: /var/log/mail/open-xchange
+    state: directory
+    mode: u=rwx,g=rx,o=rx
+    owner: open-xchange
+    group: open-xchange
+  tags: [ox]
+
+- name: Check if database {{ ox_configdb_name + " already exists for OX cluster " + ox_name }}
+  ansible.builtin.shell: >
+    mysql -u root -p'{{ mysql_root_pwd }}' -B -N -e "SHOW DATABASES LIKE '{{ ox_configdb_name }}';"
+  register: database_check_result
+  changed_when: false
+  check_mode: false
+  delegate_to: "{{ groups['openexchange_backend'][0] }}" # Assuming the first backend VM is the SQL master
+  tags: [ox]
+
+- name: "Grant {{ configdb_user }} on configdb and ox* databases, from remote"
+  ansible.builtin.include_role:
+    name: includes/db_user
+  vars:
+    user_name: "{{ configdb_user }}"
+    user_pass: "{{ configdb_pwd }}"
+    user_priv: "`ox%`.*:ALL/configdb.*:ALL"
+    user_from: "%"
+    db_servers: "{{ groups['openexchange_backend'] }}" # All backend VMs are potential DB servers
+  tags: [ox]
+
+- name: Do we need initconfigdb ?
+  when: "database_check_result.stdout != ox_configdb_name"
+  ansible.builtin.debug:
+    msg: "We need to run initconfigdb, stdout is '{{ database_check_result.stdout }}'"
+  tags: [ox]
+
+- name: Launch the initconfigdb script
+  run_once: true
+  when: "database_check_result.stdout != ox_configdb_name"
+  ansible.builtin.shell: >
+    /opt/open-xchange/sbin/initconfigdb
+    --configdb-host={{ hostvars[groups['openexchange_backend'][0]].ansible_host }}
+    --configdb-dbname={{ ox_configdb_name }}
+    --configdb-pass='{{ configdb_pwd }}'
+    --configdb-user={{ configdb_user }}
+    --mysql-root-passwd='{{ mysql_root_pwd }}'
+  register: initconfigdb_output
+  changed_when: initconfigdb_output.rc == 0
+  notify: Restart ox
+  tags: [ox]
+
+- name: Check if the installer has already ran
+  ansible.builtin.shell: >
+    grep "SERVER_NAME={{ ox_name }}" /opt/open-xchange/etc/system.properties
+  register: check_installer
+  check_mode: false
+  failed_when: false
+  changed_when: false
+  tags: [ox]
+
+- name: Do we need to run oxinstaller ?
+  when: check_installer.stdout == ""
+  ansible.builtin.debug:
+    msg: "We need to run oxinstaller, the name of the server is not the right one"
+  tags: [ox]
+
+- name: Launch the OX Installer
+  when: check_installer.stdout == ""
+  ansible.builtin.shell: >
+    /opt/open-xchange/sbin/oxinstaller --no-license
+    --servername={{ ox_name }}
+    --configdb-user={{ configdb_user }}
+    --configdb-readhost={{ hostvars[groups['openexchange_backend'][0]].ansible_host }}
+    --configdb-readport={{ ox_sql_slave_port | default(3306) }}
+    --configdb-writehost={{ hostvars[groups['openexchange_backend'][0]].ansible_host }}
+    --configdb-pass='{{ configdb_pwd }}'
+    --configdb-dbname={{ ox_configdb_name }}
+    --master-user={{ ox_master_username }}
+    --master-pass='{{ ox_master_password }}'
+    --network-listener-host=localhost
+    --servermemory 2048
+  register: oxinstaller_output
+  changed_when: oxinstaller_output.rc == 0
+  notify: Restart ox
+  tags: [ox]

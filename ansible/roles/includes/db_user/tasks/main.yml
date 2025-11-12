@@ -1,0 +1,19 @@
+---
+- name: "Grant {{ user_name }} access from {{ user_from }} to {{ user_priv }}"
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root_pwd }}"
+    login_host: 127.0.0.1
+    login_port: "{{ db_server.port | default(3306) }}"
+    force_context: true # session attached to mysql database, prevents create user replication that breaks process.
+    name: "{{ user_name }}"
+    host: "{{ user_from }}"
+    password: "{{ user_pass }}"
+    priv: "{{ user_priv }}"
+    state: present
+    column_case_sensitive: false # default value will change in community.mysql 4.0.0
+  delegate_to: "{{ db_server.name }}"
+  with_items: "{{ db_servers }}"
+  loop_control:
+    loop_var: db_server
+  tags: [always]

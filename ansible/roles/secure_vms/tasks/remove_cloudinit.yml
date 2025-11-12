@@ -1,0 +1,17 @@
+---
+- name: Remove CloudInit and its weaks dependencies
+  ansible.builtin.apt:
+    name: cloud-init
+    state: absent
+    clean: true
+    purge: true
+  become: true
+  tags: [security, system]
+
+- name: Remove unused dependencies
+  ansible.builtin.apt:
+    autoremove: true
+    clean: true
+    purge: true
+  become: true
+  tags: [security, system]

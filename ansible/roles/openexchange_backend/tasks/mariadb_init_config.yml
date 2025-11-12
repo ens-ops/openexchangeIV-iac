@@ -1,0 +1,81 @@
+---
+- name: Create the database directory
+  ansible.builtin.file:
+    path: /var/mysql/data
+    state: directory
+    mode: u=rwx,g=rx,o=rx
+    owner: mysql
+    group: mysql
+  notify:
+    - Restart MariaDB
+  tags: [mariadb]
+
+- name: Create the log directory (for binlogs and system logs)
+  ansible.builtin.file:
+    path: /var/mysql/binlogs
+    state: directory
+    mode: u=rwx,g=rws,o=rx
+    owner: mysql
+    group: adm
+  notify:
+    - Restart MariaDB
+  tags: [mariadb]
+
+- name: Copy MariaDB config
+  ansible.builtin.template:
+    dest: /etc/mysql/my.cnf
+    src: my.cnf.j2
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  notify:
+    - Restart MariaDB
+  tags: [mariadb]
+
+- name: Install the debian.cnf file
+  ansible.builtin.template:
+    dest: /etc/mysql/debian.cnf
+    src: debian.cnf.j2
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  tags: [mariadb]
+
+- name: Create the log directory (for binlogs and system logs) (old one)
+  ansible.builtin.file:
+    path: /var/log/mysql
+    state: directory
+    mode: u=rwx,g=rws,o=rx
+    owner: mysql
+    group: adm
+  notify:
+    - Restart MariaDB
+  tags: [mariadb]
+
+- name: Install logrotate configuration
+  ansible.builtin.template:
+    dest: /etc/logrotate.d/mariadb
+    src: logrotate.j2
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  tags: [mariadb]
+
+- name: Check if data folder is already initialized
+  ansible.builtin.stat:
+    path: /var/mysql/data/mysql
+  register: mariadb_data_dir
+  tags: [mariadb]
+
+- name: Init mysql with custom data folder
+  ansible.builtin.command: mariadb-install-db --datadir=/var/mysql/data --user=mysql
+  notify:
+    - Restart MariaDB
+  tags: [mariadb]
+  register: install_mariadb_data_dir
+  changed_when: install_mariadb_data_dir is success
+  when: not mariadb_data_dir.stat.exists
+
+- name: Flush handlers to restart MariaDB if necessary
+  ansible.builtin.meta: flush_handlers
+  tags: [mariadb]

@@ -1,0 +1,177 @@
+#!/usr/bin/perl
+
+# How to test this script:
+# perl pwchange.pl --username=foo --cid=1 --userid=1 --oldpassword=bar --newpassword=barbar
+
+use strict;
+use DBI;
+use Getopt::Long;
+use Text::CSV_XS qw( csv );
+use String::Random qw/random_string/;
+use Crypt::Argon2 qw/argon2id_verify argon2id_pass/;
+
+
+
+open(LOG, '>>/var/log/pw.log');
+
+sub log_error($) {
+	my ( $errorstring ) = @_;
+	print LOG "Error: $errorstring\n";
+	close LOG;
+	die "$errorstring";
+}
+
+sub find_user($$) {
+	my ( $cid, $username ) = @_;
+	# listuser -c <cid> -A oxadmin -P admin_assword -s <username>
+	open (my $fh, "-|", "/opt/open-xchange/sbin/listuser -c $cid -A {{ ox_admin_username }} -P {{ ox_admin_password }} -s '$username' --csv");
+	if ( ! $fh ) {
+		log_error "Echec de l'appel a listuser\n";
+	}
+	my $rows = csv (in => $fh, headers => "auto");
+	close $fh;
+	if ( ref($rows) ne 'ARRAY' ) {
+		log_error "Je n'ai pas reussi a lire un CSV dans la reponse de listuser\n";
+	}
+
+	if ( @$rows != 1 ) {
+		log_error "Quand je cherche le user '$username' dans le contexte '$cid' je trouve @$rows ligne(s) au lieu d'une seule. Je ne touche a rien.\n";
+	}
+	my $email = $rows->[0]->{'Email1'};
+	print LOG "User e-mail is $email\n";
+
+	my ( $user, $domain ) = split /@/, $email;
+	print LOG "Username is $user, domain name is $domain\n";
+
+	return ( $email, $user, $domain );
+}
+
+sub get_user_from_db($$$) {
+	my ( $dbh, $user, $domain ) = @_;
+
+
+	my $sth = $dbh->prepare("SELECT password FROM users WHERE username = ? and domain = ?");
+	if ( ! defined $sth ) {
+		log_error("prepare statement failed: $dbh->errstr()");
+	}
+	$sth->execute($user, $domain) or die "execution failed: $dbh->errstr()";
+	if ( $sth->rows != 1 ) {
+		log_error("user not found");
+	}
+	my $ref = $sth->fetchrow_hashref();
+	print LOG "Found a row: password = $ref->{'password'}\n";
+	$sth->finish;
+
+	return $ref;
+}
+
+sub check_old_password($$) {
+	my ( $ref, $oldpwd ) = @_;
+	my $db_hash = $ref->{'password'};
+	my $h_type = 'MD5';
+	if ( $db_hash =~ s/^{(.*?)}// ) {
+		$h_type = $1;
+	}
+	my $valid = 0;
+	if ( $h_type eq 'ARGON2ID' ) {
+		if ( argon2id_verify($db_hash, $oldpwd) ) {
+			$valid = 1;
+		}
+	} else {
+		# We suppose it is suitable for perl's crypt
+		if ( crypt($oldpwd, $db_hash) eq $db_hash ) {
+			$valid = 1;
+		}
+	}
+	return $valid;
+}
+
+sub hash_new_password($) {
+	my ( $pwd ) = @_;
+	my $salt = random_string('.' x 16);
+	my $pwcrypt = argon2id_pass($pwd, $salt, 3, '64M', 1, 32);
+	return '{ARGON2ID}'.$pwcrypt;
+}
+
+sub update_password_in_db($$$$) {
+	my ( $dbh, $pwcrypt, $user, $domain ) = @_;
+	my $sth2 = $dbh->prepare("UPDATE users SET password = ? WHERE username = ? AND domain = ?");
+	if ( ! defined $sth2 ) {
+		log_error("prepare statement failed: $dbh->errstr()");
+	}
+	my $nbrows = $sth2->execute($pwcrypt, $user, $domain);
+	if ( ! defined $nbrows ) {
+		log_error("execution failed: $dbh->errstr()");
+	}
+	if ( $nbrows != 1 ) {
+		log_error("Failed to update the password");
+	}
+}
+
+my $username;
+my $newpassword;
+my $result;
+my $cid;
+my $oldpassword;
+my $userid;
+
+$result = GetOptions ("username=s" => \$username,
+                     "cid=s" => \$cid,
+                     "userid" => \$userid,
+                     "oldpassword=s" => \$oldpassword,
+                     "newpassword=s" => \$newpassword);
+
+if ( ! $username ) {
+	log_error("missing parameter username");
+}
+if ( ! $newpassword ) {
+	log_error("missing parameter newpassword");
+}
+if ( ! $oldpassword ) {
+	log_error("missing parameter oldpassword");
+}
+if ( ! $cid ) {
+	log_error("missing parameter context-id");
+}
+print LOG "changing password for user $username\n";
+
+# add a taint check
+if ($username =~ /^([-\@\w.]+)$/) {
+	$username = $1;                     # $data now untainted
+} else {
+	log_error("Bad data in '$username'");
+}
+
+my ( $email, $user, $domain ) = find_user($cid, $username);
+print LOG "Found '$email', with user=$user and domain=$domain for '$username' in context $cid\n";
+
+my $dsn = "DBI:mysql:database=dovecot;host={{ hostvars[groups['openexchange_backend'][0]].ansible_host }};port=3306";
+my $dbh = DBI->connect($dsn, "dovecot", "{{ mysql_dovecot_pwd }}");
+my $db_user = get_user_from_db($dbh, $user, $domain);
+if ( ! $db_user ) {
+	log_error("User not found in dovecot db\n");
+}
+
+# Compare the old password provided by the user with his supposed hash stored in the database
+my $valid = check_old_password($db_user, $oldpassword);
+if ( ! $valid ) {
+	log_error("Old password does not match");
+}
+
+# Make the new hash
+my $pwcrypt = hash_new_password($newpassword);
+update_password_in_db($dbh, $pwcrypt, $user, $domain);
+print LOG "Successfuly updated the password\n";
+
+# 1. --cid - Context ID
+# 2. --username - Username of the logged in user
+# 3. --userid - User ID of the logged in user
+# 4. --oldpassword - Old user password
+# 5. --newpassword - New user password
+
+# Return codes:
+# 0 - Success
+# 1 - Unknown error
+# 2 - Password too short
+# 3 - Password too weak
+# 4 - Server error

@@ -1,0 +1,22 @@
+# Default server configuration (for any unknown domain):
+# - reject everything (404)
+# - accept the acme-challenges, either here or as a proxy to cert_manager
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+
+	include /etc/nginx/letsencrypt/*.conf;
+
+	location / {
+		return 404;
+	}
+}
+
+# Reject all SSL connections for unknown domains
+server {
+	# SSL configuration
+	listen 443 ssl http2 default_server;
+	listen [::]:443 ssl http2 default_server;
+
+	ssl_reject_handshake on;
+}

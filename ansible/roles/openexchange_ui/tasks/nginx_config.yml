@@ -1,0 +1,59 @@
+---
+- name: Ensure nginx service is started at boot
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+  tags: [nginx]
+
+- name: Ensure directory for nginx conf are present
+  ansible.builtin.file:
+    path: "/etc/nginx/{{ item }}"
+    state: directory
+    mode: u=rwx,g=rx,o=rx
+    owner: root
+    group: root
+  loop:
+    - sites-enabled
+    - conf.d
+    - snippets
+    - webmail-clients
+    - webfront
+    - kube_apps
+  tags: [nginx]
+
+- name: Install nginx.conf file
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  notify: Reload nginx
+  tags: [nginx]
+
+- name: Disable default nginx config file
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+  tags: [nginx]
+
+- name: Install the default server for nginx
+  ansible.builtin.template:
+    src: default.conf.j2
+    dest: /etc/nginx/sites-enabled/default.conf
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  notify: Reload nginx
+  tags: [nginx]
+
+- name: Install OpenExchange UI config file
+  ansible.builtin.template:
+    src: openexchange_ui.conf.j2
+    dest: /etc/nginx/sites-enabled/openexchange_ui.conf
+    mode: u=rw,g=r,o=r
+    owner: root
+    group: root
+  notify: Reload nginx
+  tags: [nginx]
