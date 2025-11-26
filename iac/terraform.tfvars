@@ -28,7 +28,7 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4DBE6Ok+CFCQ2udmVuKlmeM
 vm_ssh_user = "debian" 
 
 # Nom du template Cloud-init Debian sur Proxmox
-vm_template_name = "debian-13-cloudinit-template" 
+vm_template_name = "openexchange-custom-template" 
 
 # Ressources pour les VMs (valeurs par défaut )
 backend_vm_cpu_cores = 8
