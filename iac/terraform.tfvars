@@ -2,7 +2,7 @@
 # Remplissez ces variables avec vos valeurs spécifiques à l'environnement Proxmox et OpenExchange.
 
 proxmox_api_url = "https://pve5c4p1.spv.ens-paris-saclay.fr:8006/api2/json"
-proxmox_token_id = "terraform@pam!ef5ef1148646e908102db81481519"
+proxmox_token_id = "root@pam!terraform-token"
 proxmox_token_secret = "fec78361-973d-4896-9be3-8131a87f3fbe"
 proxmox_node = "pve5c4p1"
 proxmox_storage_pool = "iscsi-vms"
@@ -28,7 +28,7 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4DBE6Ok+CFCQ2udmVuKlmeM
 vm_ssh_user = "debian" 
 
 # Nom du template Cloud-init Debian sur Proxmox
-vm_template_name = "debian-13-cloudinit-template" 
+vm_template_name = "openexchange-custom-template" 
 
 # Ressources pour les VMs (valeurs par défaut )
 backend_vm_cpu_cores = 8
